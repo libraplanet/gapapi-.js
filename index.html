@@ -49,6 +49,14 @@
 			#ROW_NFD .head {
 				background-color: #FFFFF0;
 			}
+			#ROW_NFKC .head {
+				color: #FFFFFF;
+				background-color: #006600;
+			}
+			#ROW_NFKD .head {
+				color: #FFFFFF;
+				background-color: #666600;
+			}
 			textarea.input {
 				background-color: #FFF0F0;
 			}
@@ -105,20 +113,20 @@
 
 		</style>
 		<script type="text/javascript">
-			var elmChkSurrogatePair;
-			var elmChkRetCode;
-			var elmOrgSrc,   elmNfcSrc,   elmNfdSrc;
-			var elmOrgHex,   elmNfcHex,   elmNfdHex;
-			var elmOrgPrev,  elmNfcPrev,  elmNfdPrev;
-			var elmOrgSep,   elmNfcSep,   elmNfdSep;
+			let elmChkSurrogatePair;
+			let elmChkRetCode;
+			let elmOrgSrc,   elmNfcSrc,   elmNfdSrc,  elmNfkcSrc,  elmNfkdSrc;
+			let elmOrgHex,   elmNfcHex,   elmNfdHex,  elmNfkcHex,  elmNfkdHex;
+			let elmOrgPrev,  elmNfcPrev,  elmNfdPrev, elmNfkcPrev, elmNfkdPrev;
+			let elmOrgSep,   elmNfcSep,   elmNfdSep,  elmNfkcSep,  elmNfkdSep;
 			
-			var bufStr;
+			let bufStr;
 
 			/**
 			 * onload
 			 */
 			window.onload = function() {
-				var elmMes = document.getElementById('MESS_AREA');
+				let elmMes = document.getElementById('MESS_AREA');
 				elmMes.innerHTML = '';
 				elmMes.innerHTML += '<div>'+ window.navigator.userAgent +'</div>';
 				//elmMes.innerHTML += '<div>'+ ScriptEngine() +'</div>';
@@ -139,9 +147,17 @@
 				elmNfdHex   = document.getElementById('CELL_NFD_HEX');
 				elmNfdPrev  = document.getElementById('CELL_NFD_PREV');
 				elmNfdSep   = document.getElementById('CELL_NFD_SEP');
+				elmNfkcSrc   = document.getElementById('CELL_NFKC_SRC');
+				elmNfkcHex   = document.getElementById('CELL_NFKC_HEX');
+				elmNfkcPrev  = document.getElementById('CELL_NFKC_PREV');
+				elmNfkcSep   = document.getElementById('CELL_NFKC_SEP');
+				elmNfkdSrc   = document.getElementById('CELL_NFKD_SRC');
+				elmNfkdHex   = document.getElementById('CELL_NFKD_HEX');
+				elmNfkdPrev  = document.getElementById('CELL_NFKD_PREV');
+				elmNfkdSep   = document.getElementById('CELL_NFKD_SEP');
 
 				setInterval(function(){
-					var strOrgSrc = elmOrgSrc.value;
+					let strOrgSrc = elmOrgSrc.value;
 					if(bufStr != strOrgSrc) {
 						changed();
 					}
@@ -154,8 +170,8 @@
 			 * @param pad
 			 */
 			function codePoint2HexStr(cp, pad) {
-				var len;
-				var hex, str
+				let len;
+				let hex, str
 				hex = cp.toString(16);
 				hex = hex.toUpperCase();
 				len = Math.max(pad.length, hex.length);
@@ -171,9 +187,9 @@
 			 * @param isRetcode2cp
 			 */
 			function toHex(str, isSurrogatePair2CodePint, isRetcode2cp) {
-				var ret = '';
-				var pad;
-				var lines = [];
+				let ret = '';
+				let pad;
+				let lines = [];
 				if(isSurrogatePair2CodePint) {
 					pad = '00000000';
 				} else {
@@ -182,7 +198,7 @@
 				if(isRetcode2cp) {
 					lines.push(str);
 				} else {
-					var a = str.split(/\r\n|\n/);
+					let a = str.split(/\r\n|\n/);
 					if(a) {
 						lines = lines.concat(lines, a);
 					}
@@ -190,16 +206,16 @@
 
 				for(var line of lines) {
 					if(line) {
-						var buf = '';
+						let buf = '';
 						isRetcode2cp
 						if(isSurrogatePair2CodePint) {
-							for(var c of line) {
-								var cp = c.codePointAt();
+							for(let c of line) {
+								let cp = c.codePointAt();
 								buf += ' ' + codePoint2HexStr(cp, pad);
 							}
 						} else {
-							for(var i = 0; i < line.length; i++) {
-								var cp = line.charCodeAt(i);
+							for(let i = 0; i < line.length; i++) {
+								let cp = line.charCodeAt(i);
 								buf += ' ' + codePoint2HexStr(cp, pad);
 							}
 						}
@@ -217,10 +233,10 @@
 			 * @param str
 			 */
 			function toSplit(str) {
-				var ret = '';
+				let ret = '';
 				if(str) {
-					var buf = '';
-					var f = function(c) {
+					let buf = '';
+					let f = function(c) {
 						if(buf != '') {
 							//buf += '&#8203;';
 							buf += ' ';
@@ -231,7 +247,7 @@
 					//for(var i = 0; i < str.length; i++) {
 					//	f(str.charAt(i));
 					//}
-					for(var c of str) {
+					for(let c of str) {
 						f(c);
 					}
 					ret = buf;
@@ -255,27 +271,37 @@
 			 * change
 			 */
 			function changed(){
-				var strOrgSrc = elmOrgSrc.value;
-				var strNfcSrc = strOrgSrc.normalize('NFC');
-				var strNfdSrc = strOrgSrc.normalize('NFD');
+				let strOrgSrc = elmOrgSrc.value;
+				let strNfcSrc = strOrgSrc.normalize('NFC');
+				let strNfdSrc = strOrgSrc.normalize('NFD');
+				let strNfkcSrc = strOrgSrc.normalize('NFKC');
+				let strNfkdSrc = strOrgSrc.normalize('NFKD');
 
-				var isSurrogatePair2CodePint = elmChkSurrogatePair.checked;
-				var isRetcode2cp = !elmChkRetCode.checked;
+				let isSurrogatePair2CodePint = elmChkSurrogatePair.checked;
+				let isRetcode2cp = !elmChkRetCode.checked;
 
 				elmNfcSrc.value = strNfcSrc;
 				elmNfdSrc.value = strNfdSrc;
+				elmNfkcSrc.value = strNfkcSrc;
+				elmNfkdSrc.value = strNfkdSrc;
 
 				elmOrgHex.innerHTML = toHtml(toHex(strOrgSrc, isSurrogatePair2CodePint, isRetcode2cp));
 				elmNfcHex.innerHTML = toHtml(toHex(strNfcSrc, isSurrogatePair2CodePint, isRetcode2cp));
 				elmNfdHex.innerHTML = toHtml(toHex(strNfdSrc, isSurrogatePair2CodePint, isRetcode2cp));
+				elmNfkcHex.innerHTML = toHtml(toHex(strNfkcSrc, isSurrogatePair2CodePint, isRetcode2cp));
+				elmNfkdHex.innerHTML = toHtml(toHex(strNfkdSrc, isSurrogatePair2CodePint, isRetcode2cp));
 
 				elmOrgPrev.innerHTML = toHtml(strOrgSrc);
 				elmNfcPrev.innerHTML = toHtml(strNfcSrc);
 				elmNfdPrev.innerHTML = toHtml(strNfdSrc);
+				elmNfkcPrev.innerHTML = toHtml(strNfkcSrc);
+				elmNfkdPrev.innerHTML = toHtml(strNfkdSrc);
 
 				elmOrgSep.innerHTML = toHtml(toSplit(strOrgSrc));
 				elmNfcSep.innerHTML = toHtml(toSplit(strNfcSrc));
 				elmNfdSep.innerHTML = toHtml(toSplit(strNfdSrc));
+				elmNfkcSep.innerHTML = toHtml(toSplit(strNfkcSrc));
+				elmNfkdSep.innerHTML = toHtml(toSplit(strNfkdSrc));
 				
 				bufStr = strOrgSrc;
 			}
@@ -348,6 +374,20 @@
 								<td><div id='CELL_NFD_HEX'      class='hex  readonly'></div></td>
 								<td><div id='CELL_NFD_PREV'     class='prev readonly'></div></td>
 								<td><div id='CELL_NFD_SEP'      class='sep  readonly'></div></td>
+							</tr>
+							<tr id='ROW_NFKC' class="row">
+								<td class="head">NFKC</td>
+								<td><textarea id="CELL_NFKC_SRC" class='src readonly' readonly></textarea></td>
+								<td><div id='CELL_NFKC_HEX'      class='hex  readonly'></div></td>
+								<td><div id='CELL_NFKC_PREV'     class='prev readonly'></div></td>
+								<td><div id='CELL_NFKC_SEP'      class='sep  readonly'></div></td>
+							</tr>
+							<tr id='ROW_NFKD' class="row">
+								<td class="head">NFKD</td>
+								<td><textarea id="CELL_NFKD_SRC" class='src  readonly' readonly></textarea></td>
+								<td><div id='CELL_NFKD_HEX'      class='hex  readonly'></div></td>
+								<td><div id='CELL_NFKD_PREV'     class='prev readonly'></div></td>
+								<td><div id='CELL_NFKD_SEP'      class='sep  readonly'></div></td>
 							</tr>
 						</tbody>
 					</table>
